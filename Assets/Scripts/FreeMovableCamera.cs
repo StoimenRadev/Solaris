@@ -1,12 +1,15 @@
 using UnityEngine;
 
-public class FreeMovableCamera : MonoBehaviour
+public class SmoothFreeCamera : MonoBehaviour
 {
+    [Header("Start Position & Rotation")]
+    public Vector3 startPosition = new Vector3(0f, 5f, -100f);
+    public Vector3 startRotation = new Vector3(20f, 0f, 0f);
+
     [Header("Movement")]
     public float moveSpeed = 10f;
     public float fastMultiplier = 3f;
     public float acceleration = 10f;
-    public float damping = 10f;
 
     [Header("Mouse Look")]
     public float sensitivity = 3f;
@@ -24,6 +27,10 @@ public class FreeMovableCamera : MonoBehaviour
 
     void Start()
     {
+        // Set camera start position and rotation
+        transform.position = startPosition;
+        transform.rotation = Quaternion.Euler(startRotation);
+
         Cursor.lockState = CursorLockMode.Locked;
     }
 
