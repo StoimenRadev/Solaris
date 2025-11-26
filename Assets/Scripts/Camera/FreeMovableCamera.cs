@@ -3,8 +3,10 @@ using UnityEngine;
 public class SmoothFreeCamera : MonoBehaviour
 {
     [Header("Start Position & Rotation")]
-    public Vector3 startPosition = new Vector3(0f, 5f, -100f);
     public Vector3 startRotation = new Vector3(20f, 0f, 0f);
+    public Transform sunTransform; // assign your Sun object in Inspector
+    public float sunRadius = 250f; // Sun diameter / 2
+    public float startOffset = 100f; // extra distance from Sun surface
 
     [Header("Movement")]
     public float moveSpeed = 10f;
@@ -27,10 +29,18 @@ public class SmoothFreeCamera : MonoBehaviour
 
     void Start()
     {
-        // Set camera start position and rotation
-        transform.position = startPosition;
-        transform.rotation = Quaternion.Euler(startRotation);
+        // Set camera start position outside the Sun
+        if (sunTransform != null)
+        {
+            Vector3 offsetDirection = new Vector3(0f, 0f, -1f); // behind the Sun on z-axis
+            transform.position = sunTransform.position + offsetDirection * (sunRadius + startOffset);
+        }
+        else
+        {
+            transform.position = new Vector3(0f, 5f, -100f); // fallback
+        }
 
+        transform.rotation = Quaternion.Euler(startRotation);
         Cursor.lockState = CursorLockMode.Locked;
     }
 
