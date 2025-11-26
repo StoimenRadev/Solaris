@@ -1,9 +1,9 @@
 using UnityEngine;
 
-public class MercuryOrbiting : MonoBehaviour
+public class NeptuneOrbiting : MonoBehaviour
 {
     [Header("Orbit Reference")]
-    public OrbitPathMercury orbitPath;
+    public OrbitPathNeptune orbitPath;
 
     [Header("Orbiting Speed")]
     public float orbitSpeed = 0.5f; // radians per second

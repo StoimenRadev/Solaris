@@ -1,14 +1,14 @@
 using UnityEngine;
 
 [ExecuteAlways]
-public class OrbitPathMercury : MonoBehaviour
+public class OrbitPathMars : MonoBehaviour
 {
     [Header("Orbit Parameters")]
     public float aphelion = 1500f; // distance from Sun to aphelion
     public float perihelion = 1000f; // distance from Sun to perihelion
     [Range(0f, 0.99f)]
     public float eccentricity = 0.5f;
-    
+
     [Header("Visual Settings")]
     public int segments = 180; // number of points to draw orbit
     public LineRenderer lineRenderer;
