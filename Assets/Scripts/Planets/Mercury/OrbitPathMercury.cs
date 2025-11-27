@@ -8,10 +8,11 @@ public class OrbitPathMercury : MonoBehaviour
     public float perihelion = 1000f; // distance from Sun to perihelion
     [Range(0f, 0.99f)]
     public float eccentricity = 0.5f;
-    
+
     [Header("Visual Settings")]
     public int segments = 180; // number of points to draw orbit
     public LineRenderer lineRenderer;
+    public Material orbitMaterial; // assign your purple material here
 
     [Header("Computed")]
     public float a; // semi-major axis
@@ -23,6 +24,15 @@ public class OrbitPathMercury : MonoBehaviour
     void Awake()
     {
         if (!lineRenderer) lineRenderer = GetComponent<LineRenderer>();
+
+        // Apply material if assigned
+        if (orbitMaterial != null)
+            lineRenderer.material = orbitMaterial;
+
+        // Optional: enforce color (in case material doesn't show it)
+        lineRenderer.startColor = Color.magenta;
+        lineRenderer.endColor = Color.magenta;
+
         CalculateOrbit();
         DrawOrbit();
     }
@@ -61,6 +71,13 @@ public class OrbitPathMercury : MonoBehaviour
 #if UNITY_EDITOR
     private void OnValidate()
     {
+        if (!lineRenderer) lineRenderer = GetComponent<LineRenderer>();
+        if (orbitMaterial != null)
+            lineRenderer.material = orbitMaterial;
+
+        lineRenderer.startColor = Color.magenta;
+        lineRenderer.endColor = Color.magenta;
+
         CalculateOrbit();
         DrawOrbit();
     }
