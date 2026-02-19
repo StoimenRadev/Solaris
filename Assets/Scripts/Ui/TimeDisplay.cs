@@ -5,60 +5,54 @@ using System;
 public class TimeDisplay : MonoBehaviour
 {
     private TextMeshProUGUI buttonText;
-
-    // UTC at simulation start
     private DateTime startUtc;
-
-    // Real system time at simulation start
     private DateTime startSystemTime;
-
-    // Timer to update once per second
     private float timer = 0f;
+
+    [Header("Options")]
+    public bool showText = true;
+
+    // Exposed values for other scripts
+    public float DayOfYear { get; private set; } // for orbit calculations
+    public float FractionOfDay { get; private set; } // 0..1
 
     void Awake()
     {
-        // Get the TMP_Text from child automatically
         buttonText = GetComponentInChildren<TextMeshProUGUI>();
-
-        // Capture simulation start UTC
         startUtc = DateTime.UtcNow;
-
-        // Capture real system time at launch
         startSystemTime = DateTime.Now;
-
-        // Display initial time immediately
-        UpdateTimeDisplay();
+        UpdateTimeValues();
     }
 
     void Update()
     {
-        // Accumulate unscaled delta time (ignores Time.timeScale)
         timer += Time.unscaledDeltaTime;
-
-        // Only update once per second
-        if (timer < 1f) return;
-
+        if (timer < 1f) return; // update once per second
         timer = 0f;
 
-        // Calculate elapsed real-world time
-        TimeSpan elapsed = DateTime.Now - startSystemTime;
-
-        // Advance simulated UTC
-        DateTime simulatedUtc = startUtc.AddSeconds(elapsed.TotalSeconds);
-
-        // Convert to local time
-        DateTime localTime = simulatedUtc.ToLocalTime();
-
-        // Display in 12-hour format with uppercase AM/PM
-        buttonText.text = localTime.ToString("hh:mm:ss tt").ToUpper();
+        UpdateTimeValues();
     }
 
-    // Optional: call this if you want to force update immediately
-    public void UpdateTimeDisplay()
+    void UpdateTimeValues()
     {
         TimeSpan elapsed = DateTime.Now - startSystemTime;
         DateTime simulatedUtc = startUtc.AddSeconds(elapsed.TotalSeconds);
         DateTime localTime = simulatedUtc.ToLocalTime();
-        buttonText.text = localTime.ToString("hh:mm:ss tt").ToUpper();
+
+        // Only time fraction for smooth orbit
+        FractionOfDay = (localTime.Hour + localTime.Minute / 60f + localTime.Second / 3600f) / 24f;
+        DayOfYear = localTime.DayOfYear + FractionOfDay;
+
+        // UI only shows HH:MM:SS
+        if (showText && buttonText != null)
+        {
+            buttonText.text = localTime.ToString("HH:mm:ss");
+        }
+    }
+
+    // Optional: force update externally
+    public void ForceUpdate()
+    {
+        UpdateTimeValues();
     }
 }

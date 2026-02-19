@@ -6,7 +6,7 @@ public class EarthOrbiting : MonoBehaviour
     public OrbitPathEarth orbitPath;
 
     [Header("Orbiting Speed")]
-    public float orbitSpeed = 0.5f; // radians per second
+    public float orbitSpeed = 1.99e-7f; // radians per second
 
     private float theta = 0f; // current angle along orbit
 
@@ -18,30 +18,25 @@ public class EarthOrbiting : MonoBehaviour
             return;
         }
 
-        // Automatically place planet at perihelion (closest point)
-        theta = 0f; // theta = 0 corresponds to perihelion
+        // Automatically place planet at perihelion
+        theta = 0f;
         UpdatePosition();
     }
 
     void Update()
     {
         if (!orbitPath) return;
+        float day = orbitPath.manualDayOfYear;
+        if (orbitPath.timeDisplay != null)
+            day = orbitPath.timeDisplay.DayOfYear;
 
-        // Advance theta
-        theta += orbitSpeed * Time.deltaTime;
-        theta %= 2f * Mathf.PI;
-
-        UpdatePosition();
+        orbitPath.UpdatePlanetPosition(day);
     }
 
     void UpdatePosition()
     {
         if (!orbitPath) return;
 
-        // Planet position in XZ plane
-        float x = orbitPath.a * Mathf.Cos(theta);
-        float z = orbitPath.b * Mathf.Sin(theta);
-
-        transform.position = new Vector3(x, 0f, z);
+        transform.position = orbitPath.GetPosition(theta);
     }
 }
