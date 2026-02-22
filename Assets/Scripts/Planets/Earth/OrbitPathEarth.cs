@@ -4,18 +4,15 @@ using UnityEngine;
 public class OrbitPathEarth : MonoBehaviour
 {
     [Header("Orbit Parameters — Earth")]
-    [Tooltip("Distance from Sun to aphelion (in Unity units)")]
-    public float aphelion = 3600f;
-    [Tooltip("Distance from Sun to perihelion (in Unity units)")]
-    public float perihelion = 3500f;
+    public float a = 3000f;                       // semi-major axis
     [Range(0f, 0.99f)]
-    public float eccentricity = 0.0167f;
-    public float planetYearLength = 365.25f; // in Earth days
+    public float eccentricity = 0.0167f;          // Earth's eccentricity
+    public float planetYearLength = 365.256f;     // Earth year in days
+    public float startTheta = 5.57f;              // approximate Feb 19, 2026
 
     [Header("Planet / Visuals")]
-    [Tooltip("Use either a prefab to spawn a planet, or drag a pre-placed planet in the scene")]
     public GameObject planetPrefab;
-    public Transform planetInstance; // drag your scene planet here if not using prefab
+    public Transform planetInstance;
 
     [Header("Orbit Drawing")]
     public LineRenderer lineRenderer;
@@ -23,14 +20,12 @@ public class OrbitPathEarth : MonoBehaviour
     public int segments = 180;
 
     [Header("Time Reference")]
-    public TimeDisplay timeDisplay; // reference to your TimeDisplay script
+    public TimeDisplay timeDisplay;
     [Range(0f, 365f)]
     public float manualDayOfYear = 0f;
 
-    // Computed ellipse parameters
-    [HideInInspector] public float a; // semi-major axis
-    [HideInInspector] public float b; // semi-minor axis
-    private float c; // focal distance
+    [HideInInspector] public float b;  // semi-minor axis
+    private float c;                    // focal distance
 
     void Awake()
     {
@@ -43,6 +38,12 @@ public class OrbitPathEarth : MonoBehaviour
         CalculateOrbit();
         DrawOrbit();
         SpawnPlanet();
+
+        float day = manualDayOfYear;
+        if (timeDisplay != null)
+            day = timeDisplay.DayOfYear;
+
+        UpdatePlanetPosition(day);
     }
 
     void Update()
@@ -59,7 +60,6 @@ public class OrbitPathEarth : MonoBehaviour
     #region Orbit Calculations
     public void CalculateOrbit()
     {
-        a = (aphelion + perihelion) / 2f; // semi-major axis
         c = a * eccentricity;
         b = Mathf.Sqrt(a * a - c * c);
     }
@@ -72,7 +72,7 @@ public class OrbitPathEarth : MonoBehaviour
         for (int i = 0; i <= segments; i++)
         {
             float theta = 2f * Mathf.PI * i / segments;
-            float x = a * Mathf.Cos(theta);
+            float x = a * Mathf.Cos(theta) - c; // Sun at focus
             float z = b * Mathf.Sin(theta);
             lineRenderer.SetPosition(i, new Vector3(x, 0f, z));
         }
@@ -80,54 +80,39 @@ public class OrbitPathEarth : MonoBehaviour
 
     public void SpawnPlanet()
     {
-        if (planetInstance != null) return; // already assigned (scene planet)
-
-        if (!planetPrefab) return; // no prefab assigned
+        if (planetInstance != null) return;
+        if (!planetPrefab) return;
 
         planetInstance = Instantiate(planetPrefab, Vector3.zero, Quaternion.identity, transform).transform;
     }
 
-    public Transform GetPlanetInstance()
-    {
-        if (planetInstance == null)
-            SpawnPlanet();
-        return planetInstance;
-    }
-
     public Vector3 GetPosition(float theta)
     {
-        float x = a * Mathf.Cos(theta);
+        float x = a * Mathf.Cos(theta) - c;
         float z = b * Mathf.Sin(theta);
-        return new Vector3(x, 0f, z); // Y = 0 ensures orbit plane
+        return new Vector3(x, 0f, z);
     }
 
     public void UpdatePlanetPosition(float dayOfYear)
     {
         if (planetInstance == null) return;
 
-        // Orbit fraction
         float orbitFraction = dayOfYear / planetYearLength;
-
-        // Mean anomaly
         float M = orbitFraction * 2f * Mathf.PI;
-
-        // Solve Kepler
         float E = SolveKepler(M, eccentricity);
 
-        // True anomaly
-        float theta = 2f * Mathf.Atan(Mathf.Sqrt((1 + eccentricity) / (1 - eccentricity)) * Mathf.Tan(E / 2f));
+        float theta = -2f * Mathf.Atan(Mathf.Sqrt((1 + eccentricity) / (1 - eccentricity)) * Mathf.Tan(E / 2f));
+        theta += startTheta;
+        theta = Mathf.Repeat(theta, 2f * Mathf.PI);
 
-        Vector3 pos = GetPosition(theta);
-        planetInstance.position = pos;
+        planetInstance.position = GetPosition(theta);
     }
 
     float SolveKepler(float M, float e, int maxIter = 10)
     {
         float E = M;
         for (int i = 0; i < maxIter; i++)
-        {
             E = E - (E - e * Mathf.Sin(E) - M) / (1 - e * Mathf.Cos(E));
-        }
         return E;
     }
     #endregion

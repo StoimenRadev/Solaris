@@ -5,43 +5,29 @@ public class MercuryOrbiting : MonoBehaviour
     [Header("Orbit Reference")]
     public OrbitPathMercury orbitPath;
 
-    [Header("Orbiting Speed")]
-    public float orbitSpeed = 0.5f; // radians per second
-
-    private float theta = 0f; // current angle along orbit
-
     void Start()
     {
         if (!orbitPath)
         {
-            Debug.LogError("OrbitPath not assigned!");
+            Debug.LogError("OrbitPathEarth not assigned!");
             return;
         }
 
-        // Automatically place planet at perihelion (closest point)
-        theta = 0f; // theta = 0 corresponds to perihelion
-        UpdatePosition();
+        float day = orbitPath.manualDayOfYear;
+        if (orbitPath.timeDisplay != null)
+            day = orbitPath.timeDisplay.DayOfYear;
+
+        orbitPath.UpdatePlanetPosition(day);
     }
 
     void Update()
     {
         if (!orbitPath) return;
 
-        // Advance theta
-        theta += orbitSpeed * Time.deltaTime;
-        theta %= 2f * Mathf.PI;
+        float day = orbitPath.manualDayOfYear;
+        if (orbitPath.timeDisplay != null)
+            day = orbitPath.timeDisplay.DayOfYear;
 
-        UpdatePosition();
-    }
-
-    void UpdatePosition()
-    {
-        if (!orbitPath) return;
-
-        // Planet position in XZ plane
-        float x = orbitPath.a * Mathf.Cos(theta);
-        float z = orbitPath.b * Mathf.Sin(theta);
-
-        transform.position = new Vector3(x, 0f, z);
+        orbitPath.UpdatePlanetPosition(day);
     }
 }
