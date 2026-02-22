@@ -3,80 +3,128 @@ using UnityEngine;
 [ExecuteAlways]
 public class OrbitPathMars : MonoBehaviour
 {
-    [Header("Orbit Parameters")]
-    public float aphelion = 1500f; // distance from Sun to aphelion
-    public float perihelion = 1000f; // distance from Sun to perihelion
+    [Header("Orbit Parameters — Mars")]
+    public float a = 3500f;                        // semi-major axis
     [Range(0f, 0.99f)]
-    public float eccentricity = 0.5f;
+    public float eccentricity = 0.0934f;           // Mercury eccentricity
+    public float planetYearLength = 686.980f;       // Mercury year in Earth days
+    public float startTheta = 0.70f;    // approximate Feb 19, 2026
 
-    [Header("Visual Settings")]
-    public int segments = 180; // number of points to draw orbit
+    [Header("Planet / Visuals")]
+    public GameObject planetPrefab;
+    public Transform planetInstance;
+
+    [Header("Orbit Drawing")]
     public LineRenderer lineRenderer;
-    public Material orbitMaterial; // assign your purple material here
+    public Material orbitMaterial;
+    public int segments = 180;
 
-    [Header("Computed")]
-    public float a; // semi-major axis
-    public float b; // semi-minor axis
-    public float c; // distance from center to focus
-    public Vector3 focus1; // left focus
-    public Vector3 focus2; // right focus
+    [Header("Time Reference")]
+    public TimeDisplay timeDisplay;
+    [Range(0f, 365f)]
+    public float manualDayOfYear = 0f;
+
+    [HideInInspector] public float b;
+    private float c;
 
     void Awake()
     {
         if (!lineRenderer) lineRenderer = GetComponent<LineRenderer>();
+        if (orbitMaterial != null) lineRenderer.material = orbitMaterial;
 
-        // Apply material if assigned
-        if (orbitMaterial != null)
-            lineRenderer.material = orbitMaterial;
-
-        // Optional: enforce color (in case material doesn't show it)
-        lineRenderer.startColor = Color.magenta;
-        lineRenderer.endColor = Color.magenta;
+        lineRenderer.startColor = Color.yellow;
+        lineRenderer.endColor = Color.yellow;
 
         CalculateOrbit();
         DrawOrbit();
+        SpawnPlanet();
+
+        float day = manualDayOfYear;
+        if (timeDisplay != null)
+            day = timeDisplay.DayOfYear;
+
+        UpdatePlanetPosition(day);
     }
 
+    void Update()
+    {
+        if (planetInstance == null) return;
+
+        float day = manualDayOfYear;
+        if (timeDisplay != null)
+            day = timeDisplay.DayOfYear;
+
+        UpdatePlanetPosition(day);
+    }
+
+    #region Orbit Calculations
     public void CalculateOrbit()
     {
-        // Semi-major axis
-        a = (aphelion + perihelion) / 2f;
-
-        // Foci distance from center
         c = a * eccentricity;
-
-        // Semi-minor axis from eccentricity
         b = Mathf.Sqrt(a * a - c * c);
-
-        // Foci positions along x-axis
-        focus1 = new Vector3(-c, 0f, 0f);
-        focus2 = new Vector3(c, 0f, 0f);
     }
 
     public void DrawOrbit()
     {
         if (!lineRenderer) return;
-
         lineRenderer.positionCount = segments + 1;
 
         for (int i = 0; i <= segments; i++)
         {
             float theta = 2f * Mathf.PI * i / segments;
-            float x = a * Mathf.Cos(theta);
-            float y = b * Mathf.Sin(theta);
-            lineRenderer.SetPosition(i, new Vector3(x, 0f, y));
+            float x = a * Mathf.Cos(theta) - c; // Sun at focus
+            float z = b * Mathf.Sin(theta);
+            lineRenderer.SetPosition(i, new Vector3(x, 0f, z));
         }
     }
+
+    public void SpawnPlanet()
+    {
+        if (planetInstance != null) return;
+        if (!planetPrefab) return;
+
+        planetInstance = Instantiate(planetPrefab, Vector3.zero, Quaternion.identity, transform).transform;
+    }
+
+    public Vector3 GetPosition(float theta)
+    {
+        float x = a * Mathf.Cos(theta) - c;
+        float z = b * Mathf.Sin(theta);
+        return new Vector3(x, 0f, z);
+    }
+
+    public void UpdatePlanetPosition(float dayOfYear)
+    {
+        if (planetInstance == null) return;
+
+        float orbitFraction = dayOfYear / planetYearLength;
+        float M = orbitFraction * 2f * Mathf.PI;
+        float E = SolveKepler(M, eccentricity);
+
+        float theta = 2f * Mathf.Atan(Mathf.Sqrt((1 + eccentricity) / (1 - eccentricity)) * Mathf.Tan(E / 2f));
+        theta += startTheta;
+        theta = Mathf.Repeat(theta, 2f * Mathf.PI);
+
+        planetInstance.position = GetPosition(theta);
+    }
+
+    float SolveKepler(float M, float e, int maxIter = 10)
+    {
+        float E = M;
+        for (int i = 0; i < maxIter; i++)
+            E = E - (E - e * Mathf.Sin(E) - M) / (1 - e * Mathf.Cos(E));
+        return E;
+    }
+    #endregion
 
 #if UNITY_EDITOR
     private void OnValidate()
     {
         if (!lineRenderer) lineRenderer = GetComponent<LineRenderer>();
-        if (orbitMaterial != null)
-            lineRenderer.material = orbitMaterial;
+        if (orbitMaterial != null) lineRenderer.material = orbitMaterial;
 
-        lineRenderer.startColor = Color.magenta;
-        lineRenderer.endColor = Color.magenta;
+        lineRenderer.startColor = Color.yellow;
+        lineRenderer.endColor = Color.yellow;
 
         CalculateOrbit();
         DrawOrbit();
