@@ -5,16 +5,17 @@ public class OrbitPathEarth : MonoBehaviour
 {
     [Header("Orbit Parameters — Earth")]
     [Tooltip("Distance from Sun to aphelion (in Unity units)")]
-    public float aphelion = 1520f;
+    public float aphelion = 3600f;
     [Tooltip("Distance from Sun to perihelion (in Unity units)")]
-    public float perihelion = 1470f;
+    public float perihelion = 3500f;
     [Range(0f, 0.99f)]
     public float eccentricity = 0.0167f;
     public float planetYearLength = 365.25f; // in Earth days
 
     [Header("Planet / Visuals")]
+    [Tooltip("Use either a prefab to spawn a planet, or drag a pre-placed planet in the scene")]
     public GameObject planetPrefab;
-    private Transform planetInstance;
+    public Transform planetInstance; // drag your scene planet here if not using prefab
 
     [Header("Orbit Drawing")]
     public LineRenderer lineRenderer;
@@ -46,12 +47,12 @@ public class OrbitPathEarth : MonoBehaviour
 
     void Update()
     {
-        // Optional: planet can follow time if you want here
+        if (planetInstance == null) return;
+
         float day = manualDayOfYear;
         if (timeDisplay != null)
-        {
             day = timeDisplay.DayOfYear;
-        }
+
         UpdatePlanetPosition(day);
     }
 
@@ -79,15 +80,25 @@ public class OrbitPathEarth : MonoBehaviour
 
     public void SpawnPlanet()
     {
-        if (!planetPrefab || planetInstance != null) return;
+        if (planetInstance != null) return; // already assigned (scene planet)
+
+        if (!planetPrefab) return; // no prefab assigned
+
         planetInstance = Instantiate(planetPrefab, Vector3.zero, Quaternion.identity, transform).transform;
+    }
+
+    public Transform GetPlanetInstance()
+    {
+        if (planetInstance == null)
+            SpawnPlanet();
+        return planetInstance;
     }
 
     public Vector3 GetPosition(float theta)
     {
         float x = a * Mathf.Cos(theta);
         float z = b * Mathf.Sin(theta);
-        return new Vector3(x, 0f, z);
+        return new Vector3(x, 0f, z); // Y = 0 ensures orbit plane
     }
 
     public void UpdatePlanetPosition(float dayOfYear)
@@ -106,7 +117,8 @@ public class OrbitPathEarth : MonoBehaviour
         // True anomaly
         float theta = 2f * Mathf.Atan(Mathf.Sqrt((1 + eccentricity) / (1 - eccentricity)) * Mathf.Tan(E / 2f));
 
-        planetInstance.position = GetPosition(theta);
+        Vector3 pos = GetPosition(theta);
+        planetInstance.position = pos;
     }
 
     float SolveKepler(float M, float e, int maxIter = 10)
@@ -125,13 +137,12 @@ public class OrbitPathEarth : MonoBehaviour
     {
         if (!lineRenderer) lineRenderer = GetComponent<LineRenderer>();
         if (orbitMaterial != null) lineRenderer.material = orbitMaterial;
+
         lineRenderer.startColor = Color.magenta;
         lineRenderer.endColor = Color.magenta;
 
         CalculateOrbit();
         DrawOrbit();
-        if (planetInstance != null)
-            planetInstance.position = GetPosition(0f); // initial position
     }
 #endif
 }

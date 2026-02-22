@@ -5,10 +5,12 @@ public class EarthOrbiting : MonoBehaviour
     [Header("Orbit Reference")]
     public OrbitPathEarth orbitPath;
 
-    [Header("Orbiting Speed")]
-    public float orbitSpeed = 1.99e-7f; // radians per second
+    [Header("Start Offset")]
+    [Tooltip("Day offset to start planet at a different position in orbit")]
+    [Range(0f, 365f)]
+    public float startDayOffset = 0f;
 
-    private float theta = 0f; // current angle along orbit
+    private Transform planet; // the planet we control
 
     void Start()
     {
@@ -18,25 +20,20 @@ public class EarthOrbiting : MonoBehaviour
             return;
         }
 
-        // Automatically place planet at perihelion
-        theta = 0f;
-        UpdatePosition();
+        planet = orbitPath.GetPlanetInstance();
     }
 
     void Update()
     {
-        if (!orbitPath) return;
-        float day = orbitPath.manualDayOfYear;
-        if (orbitPath.timeDisplay != null)
-            day = orbitPath.timeDisplay.DayOfYear;
+        if (!orbitPath || planet == null) return;
 
+        // Current day of year + offset
+        float day = orbitPath.manualDayOfYear + startDayOffset;
+
+        // Wrap around year
+        day %= orbitPath.planetYearLength;
+
+        // Update planet position along orbit
         orbitPath.UpdatePlanetPosition(day);
-    }
-
-    void UpdatePosition()
-    {
-        if (!orbitPath) return;
-
-        transform.position = orbitPath.GetPosition(theta);
     }
 }
